@@ -18,7 +18,8 @@
       "Write",
       "Edit",
       "Glob",
-      "Grep"
+      "Grep",
+      "Bash(PYTHONIOENCODING=utf-8 python tests/test_local.py)"
     ]
   }
 }
