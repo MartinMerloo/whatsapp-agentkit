@@ -11,8 +11,6 @@ negocio:
     Viernes y sábados: 10:00 a 21:00.
 
 ubicacion:
-  latitud: -32.8429838
-  longitud: -68.8480019
   google_maps: "https://maps.app.goo.gl/oLcVedrzYxoyxvEL7"
 
 servicios:
