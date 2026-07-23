@@ -46,11 +46,26 @@ class ProveedorMeta(ProveedorWhatsApp):
                         ))
         return mensajes
 
+    def _normalizar_numero_destino(self, telefono: str) -> str:
+        """
+        Corrige el formato de números argentinos antes de enviarlos.
+
+        WhatsApp entrega los números de celulares argentinos con un "9"
+        después del código de país (ej: "5492614160956"), pero la Cloud API
+        de Meta espera el número sin ese "9" (ej: "542614160956") para poder
+        enviarle mensajes, o responde 400 "Recipient phone number not in
+        allowed list".
+        """
+        if telefono.startswith("549") and len(telefono) == 13:
+            return "54" + telefono[3:]
+        return telefono
+
     async def enviar_mensaje(self, telefono: str, mensaje: str) -> bool:
         """Envía mensaje via Meta WhatsApp Cloud API."""
         if not self.access_token or not self.phone_number_id:
             logger.warning("META_ACCESS_TOKEN o META_PHONE_NUMBER_ID no configurados")
             return False
+        telefono = self._normalizar_numero_destino(telefono)
         url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
