@@ -55,7 +55,15 @@ class ProveedorMeta(ProveedorWhatsApp):
         de Meta espera el número sin ese "9" (ej: "542614160956") para poder
         enviarle mensajes, o responde 400 "Recipient phone number not in
         allowed list".
+
+        Excepción temporal (Sandbox): este número de prueba está registrado
+        en Meta con un "15" adicional después del código de área. Si se
+        agregan más números de prueba con esta misma particularidad, esto
+        debería reemplazarse por una tabla de mapeo en config en vez de
+        casos hardcodeados.
         """
+        if telefono == "5492614160956":
+            return "54261154160956"
         if telefono.startswith("549") and len(telefono) == 13:
             return "54" + telefono[3:]
         return telefono
