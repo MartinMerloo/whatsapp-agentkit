@@ -10,6 +10,11 @@ negocio:
     Martes a jueves: 10:00 a 14:00 y 17:00 a 21:00.
     Viernes y sábados: 10:00 a 21:00.
 
+ubicacion:
+  latitud: -32.8429838
+  longitud: -68.8480019
+  google_maps: "https://maps.app.goo.gl/oLcVedrzYxoyxvEL7"
+
 servicios:
   - nombre: "Corte / Barbas y Cejas"
     precio: 11000

@@ -18,8 +18,12 @@ from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial
 from agent.providers import obtener_proveedor
 from agent.reminders import ejecutar_recordatorios
+from agent.tools import cargar_info_negocio
 
 load_dotenv()
+
+# Marca que Claude incluye en su respuesta cuando el cliente pide la ubicación
+MARCA_UBICACION = "[ENVIAR_UBICACION]"
 
 # Configuración de logging según entorno
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -100,12 +104,30 @@ async def webhook_handler(request: Request):
             # Generar respuesta con Claude
             respuesta = await generar_respuesta(msg.texto, historial)
 
+            # Si Claude pidió compartir la ubicación, sacamos la marca del
+            # texto antes de guardarla/mostrarla y mandamos el pin aparte
+            pedir_ubicacion = MARCA_UBICACION in respuesta
+            if pedir_ubicacion:
+                respuesta = respuesta.replace(MARCA_UBICACION, "").strip()
+
             # Guardar mensaje del usuario Y respuesta del agente en memoria
             await guardar_mensaje(msg.telefono, "user", msg.texto)
             await guardar_mensaje(msg.telefono, "assistant", respuesta)
 
             # Enviar respuesta por WhatsApp via el proveedor
             await proveedor.enviar_mensaje(msg.telefono, respuesta)
+
+            if pedir_ubicacion:
+                info = cargar_info_negocio()
+                ubicacion = info.get("ubicacion", {})
+                lat, lon = ubicacion.get("latitud"), ubicacion.get("longitud")
+                if lat and lon:
+                    await proveedor.enviar_ubicacion(
+                        msg.telefono, lat, lon,
+                        nombre=info.get("negocio", {}).get("nombre", ""),
+                    )
+                else:
+                    logger.warning("Ubicación no configurada en config/business.yaml")
 
             logger.info(f"Respuesta a {msg.telefono}: {respuesta}")
 
