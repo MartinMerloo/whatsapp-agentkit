@@ -2,12 +2,19 @@
 negocio:
   nombre: "Roma Barber Club"
   descripcion: >
-    Barbería premium especializada en cortes modernos, fades, arreglo de barba
-    y asesoramiento de imagen.
+    Barbería premium ubicada en Mendoza, Argentina, especializada en cortes
+    modernos, arreglo de barbas y cejas, y coloración (global, mechas, franjas).
+  instagram: "@Roma_barberclub"
   horario: >
     Domingo y lunes: cerrado.
     Martes a jueves: 10:00 a 14:00 y 17:00 a 21:00.
     Viernes y sábados: 10:00 a 21:00.
+
+servicios:
+  - nombre: "Corte / Barbas y Cejas"
+    precio: 11000
+  - nombre: "Colores (global, mechas, franjas, etc.)"
+    precio: null  # varía según servicio — se cotiza al agendar
 
 agente:
   nombre: "Jesus"
@@ -15,7 +22,8 @@ agente:
   casos_de_uso:
     - "Responder preguntas frecuentes"
     - "Agendar citas o reservaciones"
+    - "Recomendar cortes según lo que describe el cliente"
 
 metadata:
   creado: "2026-07-22"
-  version: "1.0"
+  version: "1.1"
