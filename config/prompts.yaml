@@ -49,3 +49,6 @@ system_prompt: |
 
 fallback_message: "Uh, no te entendí bien eso. ¿Me lo decís de otra forma?"
 error_message: "Se me trabó algo acá, dame un toque que ya te contesto."
+recordatorio_message: >
+  ¡Ey maestro! 💈 Ya pasó como un mes desde la última vez que hablamos por acá.
+  ¿Vamos afilando ese corte de nuevo? Escribime y te anoto un turno.

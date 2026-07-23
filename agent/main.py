@@ -9,6 +9,7 @@ Funciona con cualquier proveedor (Meta, Twilio) gracias a la capa de providers.
 import os
 import logging
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ from dotenv import load_dotenv
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial
 from agent.providers import obtener_proveedor
+from agent.reminders import ejecutar_recordatorios
 
 load_dotenv()
 
@@ -29,15 +31,27 @@ logger = logging.getLogger("agentkit")
 proveedor = obtener_proveedor()
 PORT = int(os.getenv("PORT", 8000))
 
+# Scheduler para el recordatorio de 30 días
+scheduler = AsyncIOScheduler()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Inicializa la base de datos al arrancar el servidor."""
+    """Inicializa la base de datos y el scheduler de recordatorios al arrancar."""
     await inicializar_db()
     logger.info("Base de datos inicializada")
     logger.info(f"Servidor AgentKit corriendo en puerto {PORT}")
     logger.info(f"Proveedor de WhatsApp: {proveedor.__class__.__name__}")
+
+    # Corre todos los días a las 10:00 UTC y manda el recordatorio a
+    # los clientes que no escriben hace 30 días
+    scheduler.add_job(ejecutar_recordatorios, "cron", hour=10, minute=0)
+    scheduler.start()
+    logger.info("Scheduler de recordatorios iniciado (diario, 10:00 UTC)")
+
     yield
+
+    scheduler.shutdown()
 
 
 app = FastAPI(

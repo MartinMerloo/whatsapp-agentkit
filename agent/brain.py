@@ -9,6 +9,8 @@ y genera respuestas usando la API de Anthropic Claude.
 import os
 import yaml
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
@@ -17,6 +19,20 @@ logger = logging.getLogger("agentkit")
 
 # Cliente de Anthropic
 client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+# Zona horaria del negocio (Mendoza, Argentina)
+ZONA_HORARIA = ZoneInfo("America/Argentina/Mendoza")
+DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def obtener_fecha_actual() -> str:
+    """Genera la fecha y hora actual (hora de Mendoza) para dársela a Claude en cada mensaje."""
+    ahora = datetime.now(ZONA_HORARIA)
+    dia_semana = DIAS_SEMANA[ahora.weekday()]
+    return (
+        f"Hoy es {dia_semana} {ahora.day:02d}/{ahora.month:02d}/{ahora.year}, "
+        f"son las {ahora.hour:02d}:{ahora.minute:02d} (hora de Mendoza, Argentina)."
+    )
 
 
 def cargar_config_prompts() -> dict:
@@ -63,6 +79,7 @@ async def generar_respuesta(mensaje: str, historial: list[dict]) -> str:
         return obtener_mensaje_fallback()
 
     system_prompt = cargar_system_prompt()
+    system_prompt += f"\n\n## Fecha y hora actual\n{obtener_fecha_actual()}"
 
     # Construir mensajes para la API
     mensajes = []

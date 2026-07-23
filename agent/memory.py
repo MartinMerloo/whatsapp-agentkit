@@ -7,10 +7,10 @@ por número de teléfono usando SQLite (local) o PostgreSQL (producción).
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Text, DateTime, select, Integer
+from sqlalchemy import String, Text, DateTime, select, Integer, func
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,6 +39,15 @@ class Mensaje(Base):
     role: Mapped[str] = mapped_column(String(20))  # "user" o "assistant"
     content: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Recordatorio(Base):
+    """Registra el último recordatorio de 30 días enviado a cada cliente."""
+    __tablename__ = "recordatorios"
+
+    telefono: Mapped[str] = mapped_column(String(50), primary_key=True)
+    ultimo_mensaje_cliente: Mapped[datetime] = mapped_column(DateTime)
+    enviado_en: Mapped[datetime] = mapped_column(DateTime)
 
 
 async def inicializar_db():
@@ -98,4 +107,53 @@ async def limpiar_historial(telefono: str):
         mensajes = result.scalars().all()
         for msg in mensajes:
             session.delete(msg)
+        await session.commit()
+
+
+async def obtener_clientes_para_recordar(dias: int = 30) -> list[dict]:
+    """
+    Retorna los clientes cuyo último mensaje fue hace `dias` días o más,
+    y que todavía no recibieron un recordatorio para ese último mensaje
+    (evita mandarles el recordatorio todos los días una vez que pasan los 30).
+
+    Returns:
+        Lista de {"telefono": str, "ultimo_mensaje": datetime}
+    """
+    limite = datetime.utcnow() - timedelta(days=dias)
+
+    async with async_session() as session:
+        query = (
+            select(Mensaje.telefono, func.max(Mensaje.timestamp).label("ultimo"))
+            .where(Mensaje.role == "user")
+            .group_by(Mensaje.telefono)
+        )
+        result = await session.execute(query)
+
+        candidatos = []
+        for telefono, ultimo_mensaje in result.all():
+            if ultimo_mensaje > limite:
+                continue  # todavía no pasaron los `dias` días
+
+            recordatorio = await session.get(Recordatorio, telefono)
+            if recordatorio and recordatorio.ultimo_mensaje_cliente == ultimo_mensaje:
+                continue  # ya se le mandó el recordatorio para este último mensaje
+
+            candidatos.append({"telefono": telefono, "ultimo_mensaje": ultimo_mensaje})
+
+        return candidatos
+
+
+async def marcar_recordatorio_enviado(telefono: str, ultimo_mensaje: datetime):
+    """Registra que ya se envió el recordatorio de 30 días a este cliente."""
+    async with async_session() as session:
+        recordatorio = await session.get(Recordatorio, telefono)
+        if recordatorio:
+            recordatorio.ultimo_mensaje_cliente = ultimo_mensaje
+            recordatorio.enviado_en = datetime.utcnow()
+        else:
+            session.add(Recordatorio(
+                telefono=telefono,
+                ultimo_mensaje_cliente=ultimo_mensaje,
+                enviado_en=datetime.utcnow(),
+            ))
         await session.commit()
